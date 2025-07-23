@@ -37,15 +37,15 @@ export default function Home() {
   const predictQuality = async () => {
     setLoading(true)
     try {
-      const response = await fetch('http://localhost:8000/predict', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(conditions)
-      })
-      const result = await response.json()
-      setPredictedQuality(result)
+      // ダミーデータを生成
+      await new Promise(resolve => setTimeout(resolve, 1000)) // 1秒待機
+      
+      const dummyResult = {
+        hardness: Math.round((40 + Math.random() * 20) * 10) / 10, // 40-60の範囲
+        mass: Math.round((100 + Math.random() * 40) * 10) / 10 // 100-140の範囲
+      }
+      
+      setPredictedQuality(dummyResult)
     } catch (error) {
       console.error('予測エラー:', error)
     } finally {
@@ -56,15 +56,17 @@ export default function Home() {
   const estimateConditions = async () => {
     setLoading(true)
     try {
-      const response = await fetch('http://localhost:8000/estimate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(targetQuality)
-      })
-      const result = await response.json()
-      setEstimatedConditions(result)
+      // ダミーデータを生成
+      await new Promise(resolve => setTimeout(resolve, 1000)) // 1秒待機
+      
+      const dummyResult = {
+        gate_a_time: Math.round((8 + Math.random() * 6) * 10) / 10, // 8-14の範囲
+        gate_b_time: Math.round((6 + Math.random() * 6) * 10) / 10, // 6-12の範囲
+        stir_speed: Math.round(80 + Math.random() * 40), // 80-120の範囲
+        temperature: Math.round(70 + Math.random() * 20) // 70-90の範囲
+      }
+      
+      setEstimatedConditions(dummyResult)
     } catch (error) {
       console.error('推定エラー:', error)
     } finally {
@@ -236,7 +238,7 @@ export default function Home() {
             {estimatedConditions && (
               <div className="mt-8 p-6 bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg">
                 <h3 className="text-xl font-bold text-center mb-4 text-gray-800">推定結果</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                   <div className="bg-white p-4 rounded-lg shadow">
                     <span className="text-gray-600">材料A投入ゲート開時間:</span>
                     <span className="ml-2 text-xl font-bold text-blue-600">{estimatedConditions.gate_a_time}秒</span>
@@ -254,6 +256,32 @@ export default function Home() {
                     <span className="ml-2 text-xl font-bold text-red-600">{estimatedConditions.temperature}°C</span>
                   </div>
                 </div>
+                <button
+                  onClick={async () => {
+                    try {
+                      const response = await fetch('http://localhost:8002/send_to_plc', {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(estimatedConditions)
+                      })
+                      
+                      if (response.ok) {
+                        const result = await response.json()
+                        alert('PLCに条件を送信しました！\n' + result.message)
+                      } else {
+                        const error = await response.json()
+                        alert('エラー: ' + error.detail)
+                      }
+                    } catch (error) {
+                      alert('通信エラー: ' + error.message)
+                    }
+                  }}
+                  className="w-full bg-gradient-to-r from-green-500 to-blue-500 text-white py-3 px-6 rounded-lg font-semibold text-lg hover:shadow-lg transform hover:-translate-y-1 transition-all"
+                >
+                  PLCに連携
+                </button>
               </div>
             )}
           </div>
