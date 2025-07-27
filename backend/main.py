@@ -2,7 +2,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import numpy as np
-from typing import Dict, Any
+from typing import Dict, Any, List
+from fastapi import Body
+import sys
+sys.path.append("..")
+from connection_plc import operate_plc
 
 app = FastAPI(title="プロセスインフォマティクス API")
 
@@ -33,6 +37,9 @@ class EstimationResponse(BaseModel):
     gate_b_time: float
     stir_speed: float
     temperature: float
+
+class PLCWriteRequest(BaseModel):
+    write_values: List[int] = [1, 1, 1, 1]
 
 def predict_quality(conditions: ProcessConditions) -> PredictionResponse:
     """条件から品質を予測する関数"""
@@ -92,6 +99,12 @@ async def predict_quality_endpoint(conditions: ProcessConditions):
 async def estimate_conditions_endpoint(quality: QualityMetrics):
     """品質から条件を推定するエンドポイント"""
     return estimate_conditions(quality)
+
+@app.post("/send_to_plc")
+async def send_to_plc(request: PLCWriteRequest = Body(...)):
+    """PLCに値を書き込み、状態を返すエンドポイント"""
+    result = operate_plc(write_values=request.write_values)
+    return result
 
 if __name__ == "__main__":
     import uvicorn

@@ -259,23 +259,36 @@ export default function Home() {
                 <button
                   onClick={async () => {
                     try {
-                      const response = await fetch('http://localhost:8002/send_to_plc', {
+                      // 推定条件からPLC書き込み値配列を作成（10倍して整数化して送信）
+                      const write_values = [
+                        Math.round(estimatedConditions.gate_a_time * 10),
+                        Math.round(estimatedConditions.gate_b_time * 10),
+                        Math.round(estimatedConditions.stir_speed * 10),
+                        Math.round(estimatedConditions.temperature * 10)
+                      ];
+                      const response = await fetch('http://localhost:8000/send_to_plc', {
                         method: 'POST',
                         headers: {
                           'Content-Type': 'application/json',
                         },
-                        body: JSON.stringify(estimatedConditions)
+                        body: JSON.stringify({ write_values })
                       })
-                      
                       if (response.ok) {
-                        const result = await response.json()
-                        alert('PLCに条件を送信しました！\n' + result.message)
+                        const result = await response.json();
+                        alert('PLCに条件を送信しました！\n' + JSON.stringify(result, null, 2));
                       } else {
-                        const error = await response.json()
-                        alert('エラー: ' + error.detail)
+                        let errorText = `HTTPエラー: ${response.status} ${response.statusText}\n`;
+                        try {
+                          const errorJson = await response.json();
+                          errorText += 'レスポンス内容: ' + JSON.stringify(errorJson, null, 2);
+                        } catch (e) {
+                          const errorBody = await response.text();
+                          errorText += 'レスポンス内容(テキスト): ' + errorBody;
+                        }
+                        alert(errorText);
                       }
                     } catch (error) {
-                      alert('通信エラー: ' + error.message)
+                      alert('通信例外: ' + (error instanceof Error ? error.message : JSON.stringify(error)));
                     }
                   }}
                   className="w-full bg-gradient-to-r from-green-500 to-blue-500 text-white py-3 px-6 rounded-lg font-semibold text-lg hover:shadow-lg transform hover:-translate-y-1 transition-all"
